@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#faf8ff">
+    <meta name="description" content="Handmade crochet, thoughtfully stitched. Browse one-of-a-kind pieces and request a custom make.">
+    <title>Yarns &amp; Totes — handmade crochet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="Yarns and Totes home">
+        <span class="brand-mark" aria-hidden="true">Y<span>✳</span>T</span>
+        <span>Yarns <span class="brand-amp">&amp;</span> Totes</span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#collection">The collection</a>
+        <a href="#story">Our story</a>
+        <a href="#how-it-works">How it works</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-button theme-toggle" type="button" aria-label="Switch color theme" title="Switch color theme"><span aria-hidden="true">☾</span></button>
+        <button class="button button-small button-outline admin-open" type="button">Maker studio <span aria-hidden="true">↗</span></button>
+        <button class="menu-toggle icon-button" type="button" aria-label="Open menu" aria-expanded="false"><span aria-hidden="true">☰</span></button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="eyebrow-dot"></span> A little handmade, a lot of heart</div>
+          <h1>Made slowly.<br><em>Loved forever.</em></h1>
+          <p class="hero-description">Thoughtful crochet, stitched one loop at a time. Find a piece that feels like you, or dream up something together.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#collection">Explore the collection <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="#how-it-works">Request a custom piece <span aria-hidden="true">→</span></a>
+          </div>
+          <div class="hero-note">
+            <span class="avatar-stack" aria-hidden="true"><i>✿</i><i>♡</i><i>✳</i></span>
+            <span>Made by hand, just for you</span>
+          </div>
+        </div>
+        <div class="hero-art" aria-label="Colorful handmade crochet pieces">
+          <div class="hero-photo hero-photo-main"><img src="images/Green%20and%20Red%20Star-Patch%20Beanie.png" alt="Green crochet beanie with a red star patch"></div>
+          <div class="hero-photo hero-photo-side"><img src="images/Striped%20Cat-Ear%20Beanie%20Display.png" alt="Red and black striped crochet cat-ear beanie"></div>
+          <div class="floating-note"><span class="note-flower" aria-hidden="true">✿</span><span>Made with<br><strong>extra love</strong></span></div>
+          <span class="hero-sparkle sparkle-one" aria-hidden="true">✳</span>
+          <span class="hero-sparkle sparkle-two" aria-hidden="true">✦</span>
+        </div>
+      </section>
+
+      <section class="availability-bar" aria-live="polite">
+        <div class="availability-label"><span class="status-dot"></span><strong id="availabilityText">Slots available</strong></div>
+        <p>Every piece is made by hand. Let’s make something special.</p>
+        <button class="availability-link request-open" type="button">Start a request <span aria-hidden="true">→</span></button>
+      </section>
+
+      <section class="collection section-wrap" id="collection">
+        <div class="section-heading">
+          <div><div class="eyebrow">A few things we’ve made</div><h2>Stitched with <em>character.</em></h2></div>
+          <a class="text-link desktop-link" href="#collection">All the lovely things <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="filter-row" role="group" aria-label="Filter designs">
+          <button class="filter-chip active" type="button" data-filter="All">All pieces</button>
+          <button class="filter-chip" type="button" data-filter="Wearables">Beanies</button>
+        </div>
+        <div class="product-grid" id="productGrid" aria-live="polite"></div>
+        <div class="collection-bottom">
+          <p>Each piece is one of a kind, just like the person who wears it.</p>
+          <button class="button button-soft request-open" type="button">Dream up a custom piece <span aria-hidden="true">↗</span></button>
+        </div>
+      </section>
+
+      <section class="story-section" id="story">
+        <div class="story-image"><img src="images/Lavender%20and%20Mint%20Bear-Ear%20Beanie.png" alt="Lavender and mint crochet beanie with bear ears"><span class="image-sticker">Slow made<br><span>with love</span> ♡</span></div>
+        <div class="story-copy">
+          <div class="eyebrow">The hands behind the hooks</div>
+          <h2>A small studio,<br><em>full of big ideas.</em></h2>
+          <p>Every stitch starts with a little imagination. I make joyful, carefully crafted crochet pieces in my own time, choosing lovely colors and putting care into every detail.</p>
+          <p>Some designs are ready to inspire you; others can be made just for you. Either way, handmade means yours may have its own little quirks—and that’s part of the magic.</p>
+          <a class="text-link" href="#how-it-works">A little more about custom makes <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+
+      <section class="how-section section-wrap" id="how-it-works">
+        <div class="section-heading centered-heading"><div class="eyebrow">Easy as one, two, three</div><h2>From your idea to <em>your piece.</em></h2><p>No checkout, no pressure. Just a note to get the conversation started.</p></div>
+        <div class="steps-grid">
+          <article class="step-card"><span class="step-number">01</span><div class="step-icon" aria-hidden="true">⌕</div><h3>Find your spark</h3><p>Browse the collection, or bring along a picture, color, or daydream of your own.</p></article>
+          <article class="step-card"><span class="step-number">02</span><div class="step-icon" aria-hidden="true">✎</div><h3>Tell me about it</h3><p>Send a few details and a reference picture if you have one. It’s just an inquiry.</p></article>
+          <article class="step-card"><span class="step-number">03</span><div class="step-icon" aria-hidden="true">♡</div><h3>Let’s make a plan</h3><p>I’ll get back to you so we can talk through the idea, price, and timing together.</p></article>
+        </div>
+        <div class="how-cta"><p>Have an idea already?</p><button class="button button-primary request-open" type="button">Let’s make it happen <span aria-hidden="true">↗</span></button></div>
+      </section>
+
+      <section class="quote-band"><span aria-hidden="true">“</span><p>A handmade thing holds a little bit of the person who made it.</p><span class="quote-flower" aria-hidden="true">✿</span></section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="#"><span class="brand-mark" aria-hidden="true">Y<span>✳</span>T</span><span>Yarns <span class="brand-amp">&amp;</span> Totes</span></a>
+      <p>Little loops. Lots of love.</p>
+      <div class="footer-links"><a href="#collection">Collection</a><a href="#story">Our story</a><a href="#how-it-works">Custom requests</a></div>
+      <span class="copyright">© <span id="year"></span> Yarns &amp; Totes</span>
+    </footer>
+
+    <dialog class="modal" id="requestModal" aria-labelledby="requestTitle">
+      <div class="modal-panel">
+        <button class="modal-close icon-button" type="button" aria-label="Close dialog">×</button>
+        <div class="eyebrow">Let’s dream it up</div>
+        <h2 id="requestTitle">Tell me what <em>you’re imagining.</em></h2>
+        <p class="modal-intro">This is just an inquiry—not a confirmed order. I’ll be in touch to talk through the details.</p>
+        <form id="requestForm">
+          <input type="hidden" name="design">
+          <div class="form-grid">
+            <label>Your name <span>*</span><input name="name" autocomplete="name" required maxlength="80" placeholder="What should I call you?"></label>
+            <label>Email or phone <span>*</span><input name="contact" required maxlength="140" placeholder="How can I reach you?"></label>
+          </div>
+          <label>What would you love me to make? <span>*</span><textarea name="description" required maxlength="2000" rows="4" placeholder="Tell me about colors, size, style, or anything else..."></textarea></label>
+          <label class="upload-label">A reference picture <span class="optional">(optional)</span><input id="referenceImage" name="reference" type="file" accept="image/png,image/jpeg,image/webp"><span class="upload-box"><span aria-hidden="true">＋</span><span id="uploadText">Choose an image (PNG, JPG, WEBP · max 2 MB)</span></span></label>
+          <p class="privacy-note">Your contact details and picture are used only to understand and follow up on this request. Please share only images you have permission to use.</p>
+          <p class="form-error" id="formError" role="alert"></p>
+          <button class="button button-primary form-submit" type="submit">Send my inquiry <span aria-hidden="true">↗</span></button>
+        </form>
+        <div class="success-panel" id="requestSuccess" hidden><span class="success-icon" aria-hidden="true">♡</span><h3>Your note is on its way!</h3><p>Thanks for sharing your idea. This is an inquiry, not a confirmed order. The maker will follow up to discuss what’s possible.</p><button class="button button-soft success-close" type="button">Lovely, thank you</button></div>
+      </div>
+    </dialog>
+
+    <dialog class="modal detail-modal" id="detailModal" aria-labelledby="detailTitle"><div class="modal-panel detail-panel"><button class="modal-close icon-button" type="button" aria-label="Close dialog">×</button><img id="detailImage" alt=""><div class="eyebrow" id="detailCategory"></div><h2 id="detailTitle"></h2><p id="detailDescription"></p><p class="detail-note">Handmade pieces may vary a little from the photos—that’s what makes yours yours.</p><button class="button button-primary detail-request" type="button">Request this design <span aria-hidden="true">↗</span></button></div></dialog>
+
+    <dialog class="modal admin-modal" id="adminModal" aria-labelledby="adminTitle">
+      <div class="modal-panel admin-panel"><button class="modal-close icon-button" type="button" aria-label="Close dialog">×</button>
+        <div class="admin-login" id="adminLogin"><div class="eyebrow">Just for the maker</div><h2 id="adminTitle">Maker <em>studio.</em></h2><p class="modal-intro">This local preview keeps changes in this browser only. It is not a secure live admin account.</p><form id="loginForm"><label>Studio passphrase<input name="password" type="password" required autocomplete="current-password" placeholder="Enter the demo passphrase"></label><p class="form-error" id="loginError" role="alert"></p><button class="button button-primary" type="submit">Open the studio <span aria-hidden="true">↗</span></button></form><p class="demo-hint">Preview passphrase: <code>loop</code></p></div>
+        <div class="admin-dashboard" id="adminDashboard" hidden>
+          <div class="dashboard-head"><div><div class="eyebrow">Your little corner</div><h2>Maker <em>studio.</em></h2></div><button class="button button-outline logout-button" type="button">Lock studio</button></div>
+          <div class="dashboard-notice"><strong>Local preview only.</strong> Gallery changes and inquiries are saved to this browser. Add secure hosting and a backend before using this for real customer data.</div>
+          <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Order status</h3><p>Only a message is shown publicly—never a slot count.</p></div></div><label class="status-select-label">Public availability<select id="adminAvailability"><option value="available">Slots available</option><option value="full">Currently fully booked</option></select></label></section>
+          <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Your collection</h3><p>Manage the pieces visitors can browse.</p></div><button class="button button-primary add-item-button" type="button">＋ Add a piece</button></div><div class="admin-products" id="adminProducts"></div></section>
+          <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Inquiries <span class="inquiry-count" id="inquiryCount">0</span></h3><p>Follow up with each person to confirm the details.</p></div></div><div class="inquiry-list" id="inquiryList"></div></section>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="modal item-modal" id="itemModal" aria-labelledby="itemModalTitle"><div class="modal-panel"><button class="modal-close icon-button" type="button" aria-label="Close dialog">×</button><div class="eyebrow">Collection details</div><h2 id="itemModalTitle">Add a <em>piece.</em></h2><form id="itemForm"><input type="hidden" name="id"><label>Piece name <span>*</span><input name="title" required maxlength="100"></label><label>Category<select name="category"><option>Accessories</option><option>Wearables</option><option>Home</option><option>Playful</option></select></label><label>Upload a photo<input name="photoUpload" type="file" accept="image/png,image/jpeg,image/webp"><span class="upload-help">PNG, JPG, or WEBP · max 1 MB</span></label><label>Or use a photo URL<input name="image" type="url" placeholder="https://..."></label><label>Description <span>*</span><textarea name="description" required rows="3" maxlength="500"></textarea></label><label>Display as<select name="status"><option>Made to order</option><option>Available to request</option><option>Inspiration</option></select></label><label class="checkbox-label"><input name="published" type="checkbox" checked> Visible in the public collection</label><p class="form-error" id="itemError" role="alert"></p><button class="button button-primary" type="submit">Save piece <span aria-hidden="true">↗</span></button></form></div></dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

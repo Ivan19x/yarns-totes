@@ -1,88 +1,95 @@
 const STORAGE_KEYS = {
-  items: "loop-bloom-items-v1",
-  inquiries: "loop-bloom-inquiries-v1",
-  availability: "loop-bloom-availability-v1",
-  theme: "loop-bloom-theme-v1"
+  theme: "yarns-totes-theme-v1"
 };
-
-const starterItems = [
-  { id: "star-patch-beanie", title: "Star-Patch Beanie", category: "Wearables", description: "A deep green crochet beanie finished with a bold red star patch. Ask about sizing and color options for a custom make.", status: "Made to order", image: "images/Green%20and%20Red%20Star-Patch%20Beanie.png", published: true },
-  { id: "bear-ear-beanie", title: "Bear-Ear Beanie", category: "Wearables", description: "A playful lavender-and-mint beanie with soft bear ears and a little crochet bow detail.", status: "Available to request", image: "images/Lavender%20and%20Mint%20Bear-Ear%20Beanie.png", published: true },
-  { id: "cat-ear-beanie", title: "Striped Cat-Ear Beanie", category: "Wearables", description: "A bold red-and-black striped beanie with pointy cat ears. Share your favorite colors when you get in touch.", status: "Inspiration", image: "images/Striped%20Cat-Ear%20Beanie%20Display.png", published: true },
-  { id: "striped-slouchy-beanie", title: "Striped Slouchy Beanie", category: "Wearables", description: "A relaxed slouchy beanie in charcoal and soft gray stripes, topped with a big crochet ear detail.", status: "Made to order", image: "images/Striped%20Slouchy%20Crochet%20Beanie%20Mannequin.png", published: true }
+const IMAGE_BUCKET = "gallery-images";
+const REFERENCE_BUCKET = "order-references";
+const INQUIRY_STATUSES = ["New", "In discussion", "Accepted", "Declined", "Completed"];
+const CATEGORIES = ["Accessories", "Wearables", "Home", "Playful"];
+const STARTER_ITEMS = [
+  { id: "star-patch-beanie", title: "Star-Patch Beanie", category: "Wearables", description: "A deep green crochet beanie finished with a bold red star patch. Ask about sizing and color options for a custom make.", status: "Made to order", image_path: "site:images/Green%20and%20Red%20Star-Patch%20Beanie.png", published: true },
+  { id: "bear-ear-beanie", title: "Bear-Ear Beanie", category: "Wearables", description: "A playful lavender-and-mint beanie with soft bear ears and a little crochet bow detail.", status: "Available to request", image_path: "site:images/Lavender%20and%20Mint%20Bear-Ear%20Beanie.png", published: true },
+  { id: "cat-ear-beanie", title: "Striped Cat-Ear Beanie", category: "Wearables", description: "A bold red-and-black striped beanie with pointy cat ears. Share your favorite colors when you get in touch.", status: "Inspiration", image_path: "site:images/Striped%20Cat-Ear%20Beanie%20Display.png", published: true },
+  { id: "striped-slouchy-beanie", title: "Striped Slouchy Beanie", category: "Wearables", description: "A relaxed slouchy beanie in charcoal and soft gray stripes, topped with a big crochet ear detail.", status: "Made to order", image_path: "site:images/Striped%20Slouchy%20Crochet%20Beanie%20Mannequin.png", published: true }
 ];
 
-const readStored = (key, fallback) => {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch (error) {
-    console.error(`Could not read ${key} from local storage.`, error);
-    return fallback;
-  }
-};
+const config = window.YT_SUPABASE_CONFIG;
+const supabaseClient = config?.url && config?.anonKey && window.supabase?.createClient
+  ? window.supabase.createClient(config.url, config.anonKey)
+  : null;
 
-const previousStarterIds = new Set([
-  "poppy-pouch", "sunday-scarf", "cloud-nine", "daisy-days",
-  "little-sprout", "petal-top", "soft-sunday", "tiny-tulip"
-]);
-const storedItems = readStored(STORAGE_KEYS.items, null);
-const shouldMigrateItems = Array.isArray(storedItems) && storedItems.some(item => previousStarterIds.has(item.id));
-let items = Array.isArray(storedItems)
-  ? shouldMigrateItems
-    ? [...starterItems, ...storedItems.filter(item => !previousStarterIds.has(item.id))]
-    : storedItems
-  : starterItems;
-let inquiries = readStored(STORAGE_KEYS.inquiries, []);
-let availability = readStored(STORAGE_KEYS.availability, "available");
+let items = [...STARTER_ITEMS];
+let inquiries = [];
+let availability = null;
 let activeFilter = "All";
-let selectedFile = "";
-let selectedItemImage = "";
-let itemImageLoading = false;
+let referenceFile = null;
+let itemPhotoFile = null;
 let toastTimer;
 
-const save = (key, value) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch (error) {
-    console.error(`Could not save ${key} to local storage.`, error);
-    showToast("Could not save. This browser may be out of storage space.");
-    return false;
-  }
-};
-
-if (shouldMigrateItems) save(STORAGE_KEYS.items, items);
-
-const esc = (value = "") => String(value).replace(/[&<>"']/g, char => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-})[char]);
-
-const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 600'%3E%3Crect width='500' height='600' fill='%23eee7fb'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='%237651b5'%3E%E2%9C%BF%3C/text%3E%3C/svg%3E";
 const productGrid = document.querySelector("#productGrid");
 const requestModal = document.querySelector("#requestModal");
 const detailModal = document.querySelector("#detailModal");
 const adminModal = document.querySelector("#adminModal");
 const itemModal = document.querySelector("#itemModal");
+const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 600'%3E%3Crect width='500' height='600' fill='%23eee7fb'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='80' fill='%237651b5'%3E%E2%9C%BF%3C/text%3E%3C/svg%3E";
+
+const esc = value => String(value ?? "").replace(/[&<>"']/g, character => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;"
+})[character]);
 
 function showToast(message) {
   const toast = document.querySelector("#toast");
   toast.textContent = message;
   toast.classList.add("visible");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("visible"), 2800);
+  toastTimer = setTimeout(() => toast.classList.remove("visible"), 3500);
+}
+
+function errorMessage(error) {
+  return error?.message || "An unexpected error occurred. Please try again.";
+}
+
+function isStoragePath(path) {
+  return Boolean(path) && !path.startsWith("site:") && !/^https?:\/\//i.test(path);
+}
+
+function imageUrl(path) {
+  if (!path) return fallbackImage;
+  if (path.startsWith("site:")) return path.slice(5);
+  if (/^https?:\/\//i.test(path)) return path;
+  if (!supabaseClient) return fallbackImage;
+  return supabaseClient.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
 function renderAvailability() {
-  const isAvailable = availability === "available";
-  document.querySelector("#availabilityText").textContent = isAvailable ? "Slots available" : "Currently fully booked";
-  document.querySelector(".status-dot").style.background = isAvailable ? "" : "#ba7e88";
-  document.querySelector("#adminAvailability").value = availability;
-  document.querySelectorAll(".request-open").forEach(button => {
-    button.disabled = !isAvailable;
-    button.title = isAvailable ? "" : "Currently fully booked";
-    button.classList.toggle("disabled-request", !isAvailable);
+  const text = document.querySelector("#availabilityText");
+  const dot = document.querySelector(".status-dot");
+  const requestButtons = document.querySelectorAll(".request-open");
+
+  if (!supabaseClient) {
+    text.textContent = "Order requests are temporarily unavailable";
+    dot.style.background = "#ba7e88";
+  } else if (availability === "available") {
+    text.textContent = "Slots available";
+    dot.style.background = "";
+  } else if (availability === "full") {
+    text.textContent = "Currently fully booked";
+    dot.style.background = "#ba7e88";
+  } else {
+    text.textContent = "Checking order availability";
+    dot.style.background = "#ba7e88";
+  }
+
+  requestButtons.forEach(button => {
+    const enabled = Boolean(supabaseClient && availability === "available");
+    button.disabled = !enabled;
+    button.title = enabled ? "" : availability === "full" ? "Currently fully booked" : "Order requests are temporarily unavailable";
   });
+  const adminAvailability = document.querySelector("#adminAvailability");
+  if (availability) adminAvailability.value = availability;
 }
 
 function visibleItems() {
@@ -95,10 +102,11 @@ function renderProducts() {
     productGrid.innerHTML = '<p class="empty-state">No pieces in this category just yet. Try another filter.</p>';
     return;
   }
+
   productGrid.innerHTML = products.map(item => `
     <article class="product-card" tabindex="0" role="button" aria-label="View ${esc(item.title)} details" data-id="${esc(item.id)}">
       <div class="product-image-wrap">
-        <img src="${esc(item.image || fallbackImage)}" alt="${esc(item.title)}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackImage}'">
+        <img src="${esc(imageUrl(item.image_path))}" alt="${esc(item.title)}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackImage}'">
         <span class="product-badge">${esc(item.status)}</span>
       </div>
       <div class="product-info"><div><h3>${esc(item.title)}</h3><p>${esc(item.category === "Home" ? "Home & living" : item.category)}</p></div><span class="product-arrow" aria-hidden="true">↗</span></div>
@@ -108,49 +116,90 @@ function renderProducts() {
 function renderAdmin() {
   const productContainer = document.querySelector("#adminProducts");
   const inquiryContainer = document.querySelector("#inquiryList");
+
   productContainer.innerHTML = items.length ? items.map(item => `
     <div class="admin-row" data-id="${esc(item.id)}">
-      <img src="${esc(item.image || fallbackImage)}" alt="" onerror="this.onerror=null;this.src='${fallbackImage}'">
+      <img src="${esc(imageUrl(item.image_path))}" alt="" onerror="this.onerror=null;this.src='${fallbackImage}'">
       <div class="admin-row-main"><strong>${esc(item.title)}</strong><small>${esc(item.category)} · ${item.published ? "Published" : "Hidden"}</small></div>
       <div class="row-actions"><button class="small-action edit-item" type="button">Edit</button><button class="small-action toggle-item" type="button">${item.published ? "Hide" : "Publish"}</button><button class="small-action delete-item" type="button">Delete</button></div>
     </div>`).join("") : '<p class="empty-state">Your collection is waiting for its first piece.</p>';
 
   document.querySelector("#inquiryCount").textContent = inquiries.length;
-  inquiryContainer.innerHTML = inquiries.length ? [...inquiries].reverse().map(inquiry => `
-    <article class="inquiry-card" data-id="${esc(inquiry.id)}">
-      <div class="inquiry-card-top"><div><strong>${esc(inquiry.name)}</strong><p>${esc(inquiry.contact)} · ${esc(new Date(inquiry.createdAt).toLocaleString())}</p></div>
-        <select class="inquiry-status" aria-label="Inquiry status">
-          ${["New", "In discussion", "Accepted", "Declined", "Completed"].map(status => `<option ${inquiry.status === status ? "selected" : ""}>${status}</option>`).join("")}
-        </select>
-      </div>
-      <p><strong>Request:</strong> ${esc(inquiry.description)}</p>
-      ${inquiry.design ? `<p><strong>Design:</strong> ${esc(inquiry.design)}</p>` : ""}
-      ${inquiry.image ? `<a href="${esc(inquiry.image)}" target="_blank" rel="noopener">View reference picture</a><br><img src="${esc(inquiry.image)}" alt="Customer reference picture">` : ""}
-    </article>`).join("") : '<p class="empty-state">No inquiries yet. New requests will show up here.</p>';
+  inquiryContainer.innerHTML = inquiries.length
+    ? '<p class="empty-state">Loading private reference pictures…</p>'
+    : '<p class="empty-state">No inquiries yet. New requests will show up here.</p>';
+  renderInquiries();
+}
+
+async function renderInquiries() {
+  const inquiryContainer = document.querySelector("#inquiryList");
+  if (!inquiries.length) return;
+
+  const cards = await Promise.all(inquiries.map(async inquiry => {
+    let referenceUrl = "";
+    if (inquiry.reference_path) {
+      try {
+        const { data, error } = await supabaseClient.storage
+          .from(REFERENCE_BUCKET)
+          .createSignedUrl(inquiry.reference_path, 60 * 60);
+        if (error) throw error;
+        referenceUrl = data?.signedUrl || "";
+      } catch (error) {
+        console.error("Could not create a private reference-image link.", error);
+      }
+    }
+
+    return `
+      <article class="inquiry-card" data-id="${esc(inquiry.id)}">
+        <div class="inquiry-card-top"><div><strong>${esc(inquiry.name)}</strong><p>${esc(inquiry.contact)} · ${esc(new Date(inquiry.created_at).toLocaleString())}</p></div>
+          <select class="inquiry-status" aria-label="Inquiry status">
+            ${INQUIRY_STATUSES.map(status => `<option value="${esc(status)}" ${inquiry.status === status ? "selected" : ""}>${esc(status)}</option>`).join("")}
+          </select>
+        </div>
+        <p><strong>Request:</strong> ${esc(inquiry.description)}</p>
+        ${inquiry.design_title ? `<p><strong>Design:</strong> ${esc(inquiry.design_title)}</p>` : ""}
+        ${referenceUrl ? `<a href="${esc(referenceUrl)}" target="_blank" rel="noopener">View private reference picture</a><br><img src="${esc(referenceUrl)}" alt="Customer reference picture">` : ""}
+      </article>`;
+  }));
+  inquiryContainer.innerHTML = cards.join("");
+}
+
+function setModalOpen(dialog, open) {
+  if (open) {
+    dialog.showModal();
+    document.body.classList.add("modal-open");
+  } else if (dialog.open) {
+    dialog.close();
+  }
 }
 
 function openRequest(design = "") {
-  if (availability !== "available") {
-    showToast("The maker is currently fully booked.");
+  if (!supabaseClient) {
+    showToast("Order requests are not connected yet. Please try again later.");
     return;
   }
+  if (availability !== "available") {
+    showToast(availability === "full" ? "The maker is currently fully booked." : "Order availability is being checked. Please try again shortly.");
+    return;
+  }
+
   const form = document.querySelector("#requestForm");
   form.reset();
   form.elements.design.value = design;
-  selectedFile = "";
+  referenceFile = null;
   document.querySelector("#uploadText").textContent = "Choose an image (PNG, JPG, WEBP · max 2 MB)";
   document.querySelector("#formError").textContent = "";
+  document.querySelector("#requestSuccessMessage").textContent = "Thanks for sharing your idea. This is an inquiry, not a confirmed order. The maker will follow up to discuss what’s possible.";
   form.hidden = false;
   document.querySelector("#requestSuccess").hidden = true;
-  requestModal.showModal();
-  document.body.classList.add("modal-open");
-  requestModal.querySelector("[name=name]").focus();
+  setModalOpen(requestModal, true);
+  form.querySelector("[name=name]").focus();
 }
 
 function openDetails(id) {
   const item = items.find(entry => entry.id === id);
   if (!item) return;
-  document.querySelector("#detailImage").src = item.image || fallbackImage;
+  document.querySelector("#detailImage").src = imageUrl(item.image_path);
   document.querySelector("#detailImage").alt = item.title;
   document.querySelector("#detailCategory").textContent = item.category === "Home" ? "Home & living" : item.category;
   document.querySelector("#detailTitle").textContent = item.title;
@@ -159,17 +208,139 @@ function openDetails(id) {
     detailModal.close();
     openRequest(item.title);
   };
-  detailModal.showModal();
-  document.body.classList.add("modal-open");
+  setModalOpen(detailModal, true);
 }
 
-function openAdmin() {
+async function checkAdminAccess() {
+  if (!supabaseClient) return { authorized: false, error: new Error("Supabase is not configured for this deployment.") };
+  const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+  if (userError) return { authorized: false, error: userError };
+  if (!userData.user) return { authorized: false, error: null };
+  const { data, error } = await supabaseClient.rpc("is_admin");
+  if (error) return { authorized: false, error };
+  return { authorized: data === true, error: null };
+}
+
+async function openAdmin() {
   document.querySelector("#adminLogin").hidden = false;
   document.querySelector("#adminDashboard").hidden = true;
   document.querySelector("#loginError").textContent = "";
   document.querySelector("#loginForm").reset();
-  adminModal.showModal();
-  document.body.classList.add("modal-open");
+  setModalOpen(adminModal, true);
+
+  if (!supabaseClient) {
+    document.querySelector("#loginError").textContent = "This deployment is missing its Supabase configuration. Add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel, then redeploy.";
+    return;
+  }
+
+  const access = await checkAdminAccess();
+  if (access.error) {
+    document.querySelector("#loginError").textContent = `Could not verify maker access: ${errorMessage(access.error)}`;
+    return;
+  }
+  if (access.authorized) await showDashboard();
+}
+
+async function loadPublicData() {
+  renderAvailability();
+  renderProducts();
+  if (!supabaseClient) return;
+
+  let itemsResult;
+  let settingResult;
+  try {
+    [itemsResult, settingResult] = await Promise.all([
+      supabaseClient.from("crochet_items")
+        .select("id,title,category,description,status,image_path,published,created_at")
+        .eq("published", true)
+        .order("created_at", { ascending: false }),
+      supabaseClient.from("site_settings")
+        .select("value")
+        .eq("key", "availability")
+        .maybeSingle()
+    ]);
+  } catch (error) {
+    availability = null;
+    renderAvailability();
+    console.error("Could not connect to Supabase.", error);
+    showToast(`Could not connect to the website database: ${errorMessage(error)}`);
+    return;
+  }
+
+  if (itemsResult.error) {
+    console.error("Could not load the public crochet collection.", itemsResult.error);
+    showToast(`Could not load the collection: ${errorMessage(itemsResult.error)}`);
+  } else {
+    items = itemsResult.data || [];
+    renderProducts();
+  }
+
+  if (settingResult.error) {
+    availability = null;
+    console.error("Could not load order availability.", settingResult.error);
+    showToast(`Could not load order availability: ${errorMessage(settingResult.error)}`);
+  } else {
+    availability = settingResult.data?.value === "available" || settingResult.data?.value === "full"
+      ? settingResult.data.value
+      : null;
+  }
+  renderAvailability();
+}
+
+async function showDashboard() {
+  document.querySelector("#adminLogin").hidden = true;
+  document.querySelector("#adminDashboard").hidden = false;
+  await loadAdminData();
+}
+
+async function loadAdminData() {
+  let itemsResult;
+  let inquiriesResult;
+  let settingResult;
+  try {
+    [itemsResult, inquiriesResult, settingResult] = await Promise.all([
+      supabaseClient.from("crochet_items")
+        .select("id,title,category,description,status,image_path,published,created_at")
+        .order("created_at", { ascending: false }),
+      supabaseClient.from("order_inquiries")
+        .select("id,name,contact,description,design_title,reference_path,status,created_at")
+        .order("created_at", { ascending: false }),
+      supabaseClient.from("site_settings")
+        .select("value")
+        .eq("key", "availability")
+        .maybeSingle()
+    ]);
+  } catch (error) {
+    showToast(`Could not connect to the maker studio: ${errorMessage(error)}`);
+    console.error("Could not load maker dashboard data.", error);
+    return;
+  }
+
+  if (itemsResult.error) {
+    showToast(`Could not load collection management: ${errorMessage(itemsResult.error)}`);
+  } else {
+    items = itemsResult.data || [];
+  }
+  if (inquiriesResult.error) {
+    showToast(`Could not load customer inquiries: ${errorMessage(inquiriesResult.error)}`);
+  } else {
+    inquiries = inquiriesResult.data || [];
+  }
+  if (settingResult.error) {
+    showToast(`Could not load order availability: ${errorMessage(settingResult.error)}`);
+  } else if (settingResult.data?.value === "available" || settingResult.data?.value === "full") {
+    availability = settingResult.data.value;
+  }
+
+  renderProducts();
+  renderAvailability();
+  renderAdmin();
+}
+
+function clearErrors(dialog) {
+  dialog.querySelectorAll(".form-error").forEach(element => {
+    element.textContent = "";
+  });
 }
 
 document.querySelector("#year").textContent = new Date().getFullYear();
@@ -180,6 +351,7 @@ document.querySelectorAll(".filter-chip").forEach(button => {
     renderProducts();
   });
 });
+
 productGrid.addEventListener("click", event => {
   const card = event.target.closest(".product-card");
   if (card) openDetails(card.dataset.id);
@@ -190,6 +362,7 @@ productGrid.addEventListener("keydown", event => {
     openDetails(event.target.dataset.id);
   }
 });
+
 document.querySelectorAll(".request-open").forEach(button => button.addEventListener("click", () => openRequest()));
 document.querySelectorAll(".admin-open").forEach(button => button.addEventListener("click", openAdmin));
 document.querySelectorAll(".modal-close").forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
@@ -202,11 +375,12 @@ document.querySelectorAll("dialog").forEach(dialog => {
   });
 });
 document.querySelector(".success-close").addEventListener("click", () => requestModal.close());
+
 document.querySelector("#referenceImage").addEventListener("change", event => {
   const file = event.target.files[0];
   const error = document.querySelector("#formError");
   error.textContent = "";
-  selectedFile = "";
+  referenceFile = null;
   if (!file) return;
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
     error.textContent = "Please choose a PNG, JPG, or WEBP image.";
@@ -218,213 +392,321 @@ document.querySelector("#referenceImage").addEventListener("change", event => {
     event.target.value = "";
     return;
   }
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    selectedFile = typeof reader.result === "string" ? reader.result : "";
-    document.querySelector("#uploadText").textContent = file.name;
-  });
-  reader.addEventListener("error", () => {
-    error.textContent = "We couldn’t read that image. Please try another file.";
-  });
-  reader.readAsDataURL(file);
-});
-document.querySelector("#requestForm").addEventListener("submit", event => {
-  event.preventDefault();
-  if (availability !== "available") {
-    document.querySelector("#formError").textContent = "The maker is currently fully booked and can’t accept new requests right now.";
-    return;
-  }
-  const form = event.currentTarget;
-  const formData = new FormData(form);
-  const inquiry = {
-    id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-    name: String(formData.get("name")).trim(),
-    contact: String(formData.get("contact")).trim(),
-    description: String(formData.get("description")).trim(),
-    design: String(formData.get("design")).trim(),
-    image: selectedFile,
-    status: "New",
-    createdAt: new Date().toISOString()
-  };
-  inquiries.push(inquiry);
-  if (!save(STORAGE_KEYS.inquiries, inquiries)) {
-    inquiries.pop();
-    document.querySelector("#formError").textContent = "We couldn’t save your inquiry in this browser. Please try again.";
-    return;
-  }
-  form.hidden = true;
-  document.querySelector("#requestSuccess").hidden = false;
+  referenceFile = file;
+  document.querySelector("#uploadText").textContent = file.name;
 });
 
-document.querySelector("#loginForm").addEventListener("submit", event => {
+document.querySelector("#requestForm").addEventListener("submit", async event => {
   event.preventDefault();
-  const password = new FormData(event.currentTarget).get("password");
-  if (password !== "loop") {
-    document.querySelector("#loginError").textContent = "That passphrase doesn’t match the local preview.";
+  const form = event.currentTarget;
+  const errorNode = document.querySelector("#formError");
+  const submitButton = form.querySelector('[type="submit"]');
+  errorNode.textContent = "";
+
+  if (!supabaseClient) {
+    errorNode.textContent = "Order requests are not connected yet. Please try again later.";
     return;
   }
-  document.querySelector("#adminLogin").hidden = true;
-  document.querySelector("#adminDashboard").hidden = false;
-  renderAdmin();
+  if (availability !== "available") {
+    errorNode.textContent = availability === "full"
+      ? "The maker is currently fully booked and can’t accept new requests right now."
+      : "Order availability could not be confirmed. Please try again shortly.";
+    return;
+  }
+
+  const data = new FormData(form);
+  const inquiryId = crypto.randomUUID();
+  submitButton.disabled = true;
+  submitButton.textContent = "Sending…";
+
+  try {
+    const { error: insertError } = await supabaseClient.from("order_inquiries").insert({
+      id: inquiryId,
+      name: String(data.get("name")).trim(),
+      contact: String(data.get("contact")).trim(),
+      description: String(data.get("description")).trim(),
+      design_title: String(data.get("design")).trim() || null
+    });
+    if (insertError) throw insertError;
+
+    let savedWithReference = true;
+    if (referenceFile) {
+      const extension = referenceFile.type === "image/png" ? "png" : referenceFile.type === "image/webp" ? "webp" : "jpg";
+      const referencePath = `customer-requests/${inquiryId}.${extension}`;
+      const { error: uploadError } = await supabaseClient.storage
+        .from(REFERENCE_BUCKET)
+        .upload(referencePath, referenceFile, { contentType: referenceFile.type, upsert: false });
+      if (uploadError) {
+        savedWithReference = false;
+        console.error("The inquiry was saved, but its reference image could not be uploaded.", uploadError);
+      } else {
+        const { data: attached, error: attachError } = await supabaseClient.rpc("attach_inquiry_reference", {
+          p_inquiry_id: inquiryId,
+          p_reference_path: referencePath
+        });
+        if (attachError || attached !== true) {
+          savedWithReference = false;
+          console.error("The inquiry was saved, but its reference image could not be attached.", attachError || "The reference was rejected.");
+        }
+      }
+    }
+
+    form.hidden = true;
+    document.querySelector("#requestSuccessMessage").textContent = savedWithReference
+      ? "Thanks for sharing your idea. This is an inquiry, not a confirmed order. The maker will follow up to discuss what’s possible."
+      : "Your inquiry was saved, but the reference image could not be attached. Please send the image to the maker when they follow up.";
+    document.querySelector("#requestSuccess").hidden = false;
+  } catch (error) {
+    console.error("Could not save the customer inquiry.", error);
+    errorNode.textContent = `We couldn’t send your inquiry: ${errorMessage(error)}`;
+  } finally {
+    submitButton.disabled = false;
+    submitButton.innerHTML = 'Send my inquiry <span aria-hidden="true">↗</span>';
+  }
 });
-document.querySelector(".logout-button").addEventListener("click", () => {
+
+document.querySelector("#loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const errorNode = document.querySelector("#loginError");
+  const submitButton = form.querySelector('[type="submit"]');
+  errorNode.textContent = "";
+  if (!supabaseClient) {
+    errorNode.textContent = "Supabase is not configured for this deployment.";
+    return;
+  }
+
+  const data = new FormData(form);
+  submitButton.disabled = true;
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email: String(data.get("email")).trim(),
+      password: String(data.get("password"))
+    });
+    if (error) throw error;
+
+    const access = await checkAdminAccess();
+    if (access.error) throw access.error;
+    if (!access.authorized) {
+      await supabaseClient.auth.signOut();
+      errorNode.textContent = "This account is not authorized for the maker studio.";
+      return;
+    }
+    await showDashboard();
+  } catch (error) {
+    console.error("Maker sign-in failed.", error);
+    errorNode.textContent = `Could not sign in: ${errorMessage(error)}`;
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+document.querySelector(".logout-button").addEventListener("click", async () => {
+  const { error } = await supabaseClient.auth.signOut();
+  if (error) {
+    showToast(`Could not sign out: ${errorMessage(error)}`);
+    return;
+  }
   adminModal.close();
   document.querySelector("#adminLogin").hidden = false;
   document.querySelector("#adminDashboard").hidden = true;
 });
-document.querySelector("#adminAvailability").addEventListener("change", event => {
+
+document.querySelector("#adminAvailability").addEventListener("change", async event => {
   const previousAvailability = availability;
-  availability = event.target.value;
-  if (save(STORAGE_KEYS.availability, availability)) {
-    renderAvailability();
-    showToast("Public order status updated.");
-  } else {
-    availability = previousAvailability;
-    renderAvailability();
+  const newAvailability = event.target.value;
+  const { error } = await supabaseClient.from("site_settings")
+    .upsert({ key: "availability", value: newAvailability }, { onConflict: "key" });
+  if (error) {
+    event.target.value = previousAvailability;
+    showToast(`Could not update order availability: ${errorMessage(error)}`);
+    return;
   }
+  availability = newAvailability;
+  renderAvailability();
+  showToast("Public order status updated.");
 });
+
 document.querySelector(".add-item-button").addEventListener("click", () => {
   const form = document.querySelector("#itemForm");
   form.reset();
   form.elements.id.value = "";
+  form.elements.image_path.value = "";
   form.elements.published.checked = true;
-  selectedItemImage = "";
-  itemImageLoading = false;
+  itemPhotoFile = null;
   document.querySelector("#itemModalTitle").innerHTML = 'Add a <em>piece.</em>';
-  document.querySelector("#itemError").textContent = "";
-  itemModal.showModal();
+  clearErrors(itemModal);
+  setModalOpen(itemModal, true);
 });
-document.querySelector("#adminProducts").addEventListener("click", event => {
+
+document.querySelector("#adminProducts").addEventListener("click", async event => {
   const row = event.target.closest(".admin-row");
   if (!row) return;
   const item = items.find(entry => entry.id === row.dataset.id);
   if (!item) return;
+
   if (event.target.closest(".edit-item")) {
     const form = document.querySelector("#itemForm");
-    selectedItemImage = "";
-    itemImageLoading = false;
+    form.reset();
     form.elements.id.value = item.id;
+    form.elements.image_path.value = item.image_path;
     form.elements.title.value = item.title;
-    form.elements.category.value = item.category;
-    form.elements.image.value = item.image.startsWith("data:") ? "" : item.image;
+    form.elements.category.value = CATEGORIES.includes(item.category) ? item.category : "Accessories";
+    form.elements.image.value = /^https?:\/\//i.test(item.image_path) ? item.image_path : "";
     form.elements.description.value = item.description;
     form.elements.status.value = item.status;
     form.elements.published.checked = item.published;
+    itemPhotoFile = null;
     document.querySelector("#itemModalTitle").innerHTML = 'Edit a <em>piece.</em>';
-    document.querySelector("#itemError").textContent = "";
-    itemModal.showModal();
+    clearErrors(itemModal);
+    setModalOpen(itemModal, true);
   } else if (event.target.closest(".toggle-item")) {
-    const previousPublished = item.published;
-    item.published = !item.published;
-    if (save(STORAGE_KEYS.items, items)) {
-      renderProducts();
-      renderAdmin();
-      showToast(item.published ? "Piece published." : "Piece hidden from the collection.");
-    } else {
-      item.published = previousPublished;
+    const { error } = await supabaseClient.from("crochet_items")
+      .update({ published: !item.published })
+      .eq("id", item.id);
+    if (error) {
+      showToast(`Could not update this piece: ${errorMessage(error)}`);
+      return;
     }
+    await loadAdminData();
+    showToast(item.published ? "Piece hidden from the collection." : "Piece published.");
   } else if (event.target.closest(".delete-item")) {
-    if (confirm(`Remove "${item.title}" from the collection?`)) {
-      const previous = items;
-      items = items.filter(entry => entry.id !== item.id);
-      if (save(STORAGE_KEYS.items, items)) {
-        renderProducts();
-        renderAdmin();
-        showToast("Piece removed.");
-      } else {
-        items = previous;
-      }
+    if (!confirm(`Remove "${item.title}" from the collection?`)) return;
+    const { error } = await supabaseClient.from("crochet_items").delete().eq("id", item.id);
+    if (error) {
+      showToast(`Could not remove this piece: ${errorMessage(error)}`);
+      return;
     }
+    if (isStoragePath(item.image_path)) {
+      const { error: imageError } = await supabaseClient.storage.from(IMAGE_BUCKET).remove([item.image_path]);
+      if (imageError) console.error("Piece removed, but its old image could not be deleted.", imageError);
+    }
+    await loadAdminData();
+    showToast("Piece removed.");
   }
 });
+
 document.querySelector("#itemForm [name='photoUpload']").addEventListener("change", event => {
   const file = event.target.files[0];
-  const error = document.querySelector("#itemError");
-  error.textContent = "";
-  selectedItemImage = "";
-  itemImageLoading = false;
+  const errorNode = document.querySelector("#itemError");
+  errorNode.textContent = "";
+  itemPhotoFile = null;
   if (!file) return;
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-    error.textContent = "Please choose a PNG, JPG, or WEBP image.";
+    errorNode.textContent = "Please choose a PNG, JPG, or WEBP image.";
     event.target.value = "";
     return;
   }
-  if (file.size > 1024 * 1024) {
-    error.textContent = "That image is larger than 1 MB. Please choose a smaller one.";
+  if (file.size > 5 * 1024 * 1024) {
+    errorNode.textContent = "That image is larger than 5 MB. Please choose a smaller one.";
     event.target.value = "";
     return;
   }
-  itemImageLoading = true;
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    selectedItemImage = typeof reader.result === "string" ? reader.result : "";
-    itemImageLoading = false;
-  });
-  reader.addEventListener("error", () => {
-    itemImageLoading = false;
-    error.textContent = "We couldn’t read that image. Please try another file.";
-  });
-  reader.readAsDataURL(file);
+  itemPhotoFile = file;
 });
-document.querySelector("#itemForm").addEventListener("submit", event => {
+
+document.querySelector("#itemForm").addEventListener("submit", async event => {
   event.preventDefault();
-  if (itemImageLoading) {
-    document.querySelector("#itemError").textContent = "Please wait for the photo to finish loading.";
-    return;
-  }
   const form = event.currentTarget;
+  const errorNode = document.querySelector("#itemError");
+  const submitButton = form.querySelector('[type="submit"]');
+  errorNode.textContent = "";
+
   const data = new FormData(form);
   const id = String(data.get("id"));
   const existing = items.find(item => item.id === id);
-  const imageUrl = String(data.get("image")).trim();
-  if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
-    document.querySelector("#itemError").textContent = "Please enter a valid image URL beginning with http:// or https://.";
+  const imageInput = String(data.get("image")).trim();
+  if (imageInput && !/^https?:\/\//i.test(imageInput)) {
+    errorNode.textContent = "Please enter a valid image URL beginning with http:// or https://.";
     return;
   }
-  const image = selectedItemImage || imageUrl;
-  const previousItems = items.map(entry => ({ ...entry }));
-  const item = {
-    id: existing ? existing.id : `piece-${Date.now()}`,
-    title: String(data.get("title")).trim(),
-    category: String(data.get("category")),
-    description: String(data.get("description")).trim(),
-    status: String(data.get("status")),
-    image: image || (existing ? existing.image : fallbackImage),
-    published: form.elements.published.checked
-  };
-  if (existing) Object.assign(existing, item);
-  else items.push(item);
-  if (!save(STORAGE_KEYS.items, items)) {
-    items = previousItems;
+  if (!itemPhotoFile && !imageInput && !data.get("image_path")) {
+    errorNode.textContent = "Add a photo or provide a photo URL for this piece.";
     return;
   }
-  selectedItemImage = "";
-  itemImageLoading = false;
-  itemModal.close();
-  renderProducts();
-  renderAdmin();
-  showToast(existing ? "Piece updated." : "Piece added to your collection.");
+
+  submitButton.disabled = true;
+  let uploadedPath = "";
+  try {
+    let imagePath = String(data.get("image_path"));
+    if (itemPhotoFile) {
+      const extension = itemPhotoFile.type === "image/png" ? "png" : itemPhotoFile.type === "image/webp" ? "webp" : "jpg";
+      uploadedPath = `gallery/${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabaseClient.storage
+        .from(IMAGE_BUCKET)
+        .upload(uploadedPath, itemPhotoFile, { contentType: itemPhotoFile.type, upsert: false });
+      if (uploadError) throw uploadError;
+      imagePath = uploadedPath;
+    } else if (imageInput) {
+      imagePath = imageInput;
+    }
+
+    const record = {
+      title: String(data.get("title")).trim(),
+      category: String(data.get("category")),
+      description: String(data.get("description")).trim(),
+      status: String(data.get("status")),
+      image_path: imagePath,
+      published: form.elements.published.checked
+    };
+
+    const result = existing
+      ? await supabaseClient.from("crochet_items").update(record).eq("id", existing.id)
+      : await supabaseClient.from("crochet_items").insert(record);
+    if (result.error) throw result.error;
+
+    const previousImage = existing?.image_path;
+    if (isStoragePath(previousImage) && previousImage !== imagePath) {
+      const { error: removeError } = await supabaseClient.storage.from(IMAGE_BUCKET).remove([previousImage]);
+      if (removeError) console.error("Piece saved, but the previous photo could not be deleted.", removeError);
+    }
+
+    itemPhotoFile = null;
+    itemModal.close();
+    await loadAdminData();
+    showToast(existing ? "Piece updated." : "Piece added to your collection.");
+  } catch (error) {
+    console.error("Could not save the crochet piece.", error);
+    errorNode.textContent = `Could not save this piece: ${errorMessage(error)}`;
+    if (uploadedPath) {
+      const { error: cleanupError } = await supabaseClient.storage.from(IMAGE_BUCKET).remove([uploadedPath]);
+      if (cleanupError) console.error("Could not clean up the unused uploaded image.", cleanupError);
+    }
+  } finally {
+    submitButton.disabled = false;
+  }
 });
-document.querySelector("#inquiryList").addEventListener("change", event => {
+
+document.querySelector("#inquiryList").addEventListener("change", async event => {
   if (!event.target.matches(".inquiry-status")) return;
   const card = event.target.closest(".inquiry-card");
   const inquiry = inquiries.find(entry => entry.id === card.dataset.id);
   if (!inquiry) return;
   const previousStatus = inquiry.status;
-  inquiry.status = event.target.value;
-  if (save(STORAGE_KEYS.inquiries, inquiries)) showToast("Inquiry status updated.");
-  else {
-    inquiry.status = previousStatus;
+  const { error } = await supabaseClient.from("order_inquiries")
+    .update({ status: event.target.value })
+    .eq("id", inquiry.id);
+  if (error) {
     event.target.value = previousStatus;
+    showToast(`Could not update inquiry status: ${errorMessage(error)}`);
+    return;
   }
+  inquiry.status = event.target.value;
+  showToast("Inquiry status updated.");
 });
+
 document.querySelector(".theme-toggle").addEventListener("click", () => {
   document.body.classList.toggle("dark-theme");
   const dark = document.body.classList.contains("dark-theme");
-  save(STORAGE_KEYS.theme, dark ? "dark" : "light");
+  try {
+    localStorage.setItem(STORAGE_KEYS.theme, dark ? "dark" : "light");
+  } catch (error) {
+    console.error("Could not save the theme preference.", error);
+  }
   document.querySelector(".theme-toggle span").textContent = dark ? "☀" : "☾";
   document.querySelector(".theme-toggle").setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
 });
+
 const menuToggle = document.querySelector(".menu-toggle");
 menuToggle.addEventListener("click", () => {
   const nav = document.querySelector(".main-nav");
@@ -436,10 +718,16 @@ document.querySelectorAll(".main-nav a").forEach(link => link.addEventListener("
   menuToggle.setAttribute("aria-expanded", "false");
 }));
 
-if (readStored(STORAGE_KEYS.theme, "light") === "dark") {
-  document.body.classList.add("dark-theme");
-  document.querySelector(".theme-toggle span").textContent = "☀";
-  document.querySelector(".theme-toggle").setAttribute("aria-label", "Switch to light theme");
+try {
+  if (localStorage.getItem(STORAGE_KEYS.theme) === "dark") {
+    document.body.classList.add("dark-theme");
+    document.querySelector(".theme-toggle span").textContent = "☀";
+    document.querySelector(".theme-toggle").setAttribute("aria-label", "Switch to light theme");
+  }
+} catch (error) {
+  console.error("Could not read the theme preference.", error);
 }
+
 renderAvailability();
 renderProducts();
+loadPublicData();

@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="supabase-config.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -125,7 +127,7 @@
           <p class="form-error" id="formError" role="alert"></p>
           <button class="button button-primary form-submit" type="submit">Send my inquiry <span aria-hidden="true">↗</span></button>
         </form>
-        <div class="success-panel" id="requestSuccess" hidden><span class="success-icon" aria-hidden="true">♡</span><h3>Your note is on its way!</h3><p>Thanks for sharing your idea. This is an inquiry, not a confirmed order. The maker will follow up to discuss what’s possible.</p><button class="button button-soft success-close" type="button">Lovely, thank you</button></div>
+        <div class="success-panel" id="requestSuccess" hidden><span class="success-icon" aria-hidden="true">♡</span><h3>Your note is on its way!</h3><p id="requestSuccessMessage">Thanks for sharing your idea. This is an inquiry, not a confirmed order. The maker will follow up to discuss what’s possible.</p><button class="button button-soft success-close" type="button">Lovely, thank you</button></div>
       </div>
     </dialog>
 
@@ -133,10 +135,10 @@
 
     <dialog class="modal admin-modal" id="adminModal" aria-labelledby="adminTitle">
       <div class="modal-panel admin-panel"><button class="modal-close icon-button" type="button" aria-label="Close dialog">×</button>
-        <div class="admin-login" id="adminLogin"><div class="eyebrow">Just for the maker</div><h2 id="adminTitle">Maker <em>studio.</em></h2><p class="modal-intro">This local preview keeps changes in this browser only. It is not a secure live admin account.</p><form id="loginForm"><label>Studio passphrase<input name="password" type="password" required autocomplete="current-password" placeholder="Enter the demo passphrase"></label><p class="form-error" id="loginError" role="alert"></p><button class="button button-primary" type="submit">Open the studio <span aria-hidden="true">↗</span></button></form><p class="demo-hint">Preview passphrase: <code>loop</code></p></div>
+        <div class="admin-login" id="adminLogin"><div class="eyebrow">Just for the maker</div><h2 id="adminTitle">Maker <em>studio.</em></h2><p class="modal-intro">Sign in with the maker account authorized for this studio.</p><form id="loginForm"><label>Email address<input name="email" type="email" required autocomplete="username" maxlength="254" placeholder="maker@example.com"></label><label>Password<input name="password" type="password" required autocomplete="current-password" placeholder="Your password"></label><p class="form-error" id="loginError" role="alert"></p><button class="button button-primary" type="submit">Sign in <span aria-hidden="true">↗</span></button></form><p class="demo-hint">Maker accounts are created and authorized in Supabase; public sign-up is disabled.</p></div>
         <div class="admin-dashboard" id="adminDashboard" hidden>
           <div class="dashboard-head"><div><div class="eyebrow">Your little corner</div><h2>Maker <em>studio.</em></h2></div><button class="button button-outline logout-button" type="button">Lock studio</button></div>
-          <div class="dashboard-notice"><strong>Local preview only.</strong> Gallery changes and inquiries are saved to this browser. Add secure hosting and a backend before using this for real customer data.</div>
+          <div class="dashboard-notice"><strong>Private maker studio.</strong> Gallery changes, availability, and customer inquiries are shared through the connected Supabase project.</div>
           <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Order status</h3><p>Only a message is shown publicly—never a slot count.</p></div></div><label class="status-select-label">Public availability<select id="adminAvailability"><option value="available">Slots available</option><option value="full">Currently fully booked</option></select></label></section>
           <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Your collection</h3><p>Manage the pieces visitors can browse.</p></div><button class="button button-primary add-item-button" type="button">＋ Add a piece</button></div><div class="admin-products" id="adminProducts"></div></section>
           <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Inquiries <span class="inquiry-count" id="inquiryCount">0</span></h3><p>Follow up with each person to confirm the details.</p></div></div><div class="inquiry-list" id="inquiryList"></div></section>
@@ -144,7 +146,7 @@
       </div>
     </dialog>
 
-    <dialog class="modal item-modal" id="itemModal" aria-labelledby="itemModalTitle"><div class="modal-panel"><button class="modal-close icon-button" type="button" aria-label="Close dialog">×</button><div class="eyebrow">Collection details</div><h2 id="itemModalTitle">Add a <em>piece.</em></h2><form id="itemForm"><input type="hidden" name="id"><label>Piece name <span>*</span><input name="title" required maxlength="100"></label><label>Category<select name="category"><option>Accessories</option><option>Wearables</option><option>Home</option><option>Playful</option></select></label><label>Upload a photo<input name="photoUpload" type="file" accept="image/png,image/jpeg,image/webp"><span class="upload-help">PNG, JPG, or WEBP · max 1 MB</span></label><label>Or use a photo URL<input name="image" type="url" placeholder="https://..."></label><label>Description <span>*</span><textarea name="description" required rows="3" maxlength="500"></textarea></label><label>Display as<select name="status"><option>Made to order</option><option>Available to request</option><option>Inspiration</option></select></label><label class="checkbox-label"><input name="published" type="checkbox" checked> Visible in the public collection</label><p class="form-error" id="itemError" role="alert"></p><button class="button button-primary" type="submit">Save piece <span aria-hidden="true">↗</span></button></form></div></dialog>
+    <dialog class="modal item-modal" id="itemModal" aria-labelledby="itemModalTitle"><div class="modal-panel"><button class="modal-close icon-button" type="button" aria-label="Close dialog">×</button><div class="eyebrow">Collection details</div><h2 id="itemModalTitle">Add a <em>piece.</em></h2><form id="itemForm"><input type="hidden" name="id"><input type="hidden" name="image_path"><label>Piece name <span>*</span><input name="title" required maxlength="100"></label><label>Category<select name="category"><option>Accessories</option><option>Wearables</option><option>Home</option><option>Playful</option></select></label><label>Upload a photo<input name="photoUpload" type="file" accept="image/png,image/jpeg,image/webp"><span class="upload-help">PNG, JPG, or WEBP · max 5 MB</span></label><label>Or use a photo URL<input name="image" type="url" placeholder="https://..."></label><label>Description <span>*</span><textarea name="description" required rows="3" maxlength="1000"></textarea></label><label>Display as<select name="status"><option>Made to order</option><option>Available to request</option><option>Inspiration</option></select></label><label class="checkbox-label"><input name="published" type="checkbox" checked> Visible in the public collection</label><p class="form-error" id="itemError" role="alert"></p><button class="button button-primary" type="submit">Save piece <span aria-hidden="true">↗</span></button></form></div></dialog>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>
 </html>

@@ -1,2 +1,5 @@
 dist/
 supabase-config.js
+.env
+.env.*
+!.env.example

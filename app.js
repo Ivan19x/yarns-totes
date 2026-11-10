@@ -52,6 +52,30 @@ function errorMessage(error) {
   return error?.message || "An unexpected error occurred. Please try again.";
 }
 
+async function studioApi(action, data = {}) {
+  const options = action
+    ? {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...data })
+    }
+    : { method: "GET" };
+  const response = await fetch("/api/studio", options);
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || `Studio request failed (${response.status}).`);
+  return result;
+}
+
+async function exchangeStudioLink(token) {
+  const response = await fetch("/api/studio-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || `Could not open private studio (${response.status}).`);
+}
+
 function isStoragePath(path) {
   return Boolean(path) && !path.startsWith("site:") && !/^https?:\/\//i.test(path);
 }
@@ -119,37 +143,14 @@ function renderAdmin() {
 
   productContainer.innerHTML = items.length ? items.map(item => `
     <div class="admin-row" data-id="${esc(item.id)}">
-      <img src="${esc(imageUrl(item.image_path))}" alt="" onerror="this.onerror=null;this.src='${fallbackImage}'">
+      <img src="${esc(item.image_url || imageUrl(item.image_path))}" alt="" onerror="this.onerror=null;this.src='${fallbackImage}'">
       <div class="admin-row-main"><strong>${esc(item.title)}</strong><small>${esc(item.category)} · ${item.published ? "Published" : "Hidden"}</small></div>
       <div class="row-actions"><button class="small-action edit-item" type="button">Edit</button><button class="small-action toggle-item" type="button">${item.published ? "Hide" : "Publish"}</button><button class="small-action delete-item" type="button">Delete</button></div>
     </div>`).join("") : '<p class="empty-state">Your collection is waiting for its first piece.</p>';
 
   document.querySelector("#inquiryCount").textContent = inquiries.length;
   inquiryContainer.innerHTML = inquiries.length
-    ? '<p class="empty-state">Loading private reference pictures…</p>'
-    : '<p class="empty-state">No inquiries yet. New requests will show up here.</p>';
-  renderInquiries();
-}
-
-async function renderInquiries() {
-  const inquiryContainer = document.querySelector("#inquiryList");
-  if (!inquiries.length) return;
-
-  const cards = await Promise.all(inquiries.map(async inquiry => {
-    let referenceUrl = "";
-    if (inquiry.reference_path) {
-      try {
-        const { data, error } = await supabaseClient.storage
-          .from(REFERENCE_BUCKET)
-          .createSignedUrl(inquiry.reference_path, 60 * 60);
-        if (error) throw error;
-        referenceUrl = data?.signedUrl || "";
-      } catch (error) {
-        console.error("Could not create a private reference-image link.", error);
-      }
-    }
-
-    return `
+    ? inquiries.map(inquiry => `
       <article class="inquiry-card" data-id="${esc(inquiry.id)}">
         <div class="inquiry-card-top"><div><strong>${esc(inquiry.name)}</strong><p>${esc(inquiry.contact)} · ${esc(new Date(inquiry.created_at).toLocaleString())}</p></div>
           <select class="inquiry-status" aria-label="Inquiry status">
@@ -158,10 +159,9 @@ async function renderInquiries() {
         </div>
         <p><strong>Request:</strong> ${esc(inquiry.description)}</p>
         ${inquiry.design_title ? `<p><strong>Design:</strong> ${esc(inquiry.design_title)}</p>` : ""}
-        ${referenceUrl ? `<a href="${esc(referenceUrl)}" target="_blank" rel="noopener">View private reference picture</a><br><img src="${esc(referenceUrl)}" alt="Customer reference picture">` : ""}
-      </article>`;
-  }));
-  inquiryContainer.innerHTML = cards.join("");
+        ${inquiry.reference_url ? `<a href="${esc(inquiry.reference_url)}" target="_blank" rel="noopener">View private reference picture</a><br><img src="${esc(inquiry.reference_url)}" alt="Customer reference picture">` : ""}
+      </article>`).join("")
+    : '<p class="empty-state">No inquiries yet. New requests will show up here.</p>';
 }
 
 function setModalOpen(dialog, open) {
@@ -211,34 +211,30 @@ function openDetails(id) {
   setModalOpen(detailModal, true);
 }
 
-async function checkAdminAccess() {
-  if (!supabaseClient) return { authorized: false, error: new Error("Supabase is not configured for this deployment.") };
-  const { data: userData, error: userError } = await supabaseClient.auth.getUser();
-  if (userError) return { authorized: false, error: userError };
-  if (!userData.user) return { authorized: false, error: null };
-  const { data, error } = await supabaseClient.rpc("is_admin");
-  if (error) return { authorized: false, error };
-  return { authorized: data === true, error: null };
-}
-
 async function openAdmin() {
   document.querySelector("#adminLogin").hidden = false;
   document.querySelector("#adminDashboard").hidden = true;
   document.querySelector("#loginError").textContent = "";
-  document.querySelector("#loginForm").reset();
   setModalOpen(adminModal, true);
 
-  if (!supabaseClient) {
-    document.querySelector("#loginError").textContent = "This deployment is missing its Supabase configuration. Add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel, then redeploy.";
-    return;
+  const linkToken = window.YT_STUDIO_LINK_TOKEN;
+  if (linkToken) {
+    window.YT_STUDIO_LINK_TOKEN = "";
+    try {
+      await exchangeStudioLink(linkToken);
+      await showDashboard();
+    } catch (error) {
+      document.querySelector("#loginError").textContent = errorMessage(error);
+    }
+  } else {
+    try {
+      await showDashboard();
+    } catch (error) {
+      if (!/open the private studio link/i.test(errorMessage(error))) {
+        document.querySelector("#loginError").textContent = errorMessage(error);
+      }
+    }
   }
-
-  const access = await checkAdminAccess();
-  if (access.error) {
-    document.querySelector("#loginError").textContent = `Could not verify maker access: ${errorMessage(access.error)}`;
-    return;
-  }
-  if (access.authorized) await showDashboard();
 }
 
 async function loadPublicData() {
@@ -288,50 +284,16 @@ async function loadPublicData() {
 }
 
 async function showDashboard() {
+  await loadAdminData();
   document.querySelector("#adminLogin").hidden = true;
   document.querySelector("#adminDashboard").hidden = false;
-  await loadAdminData();
 }
 
 async function loadAdminData() {
-  let itemsResult;
-  let inquiriesResult;
-  let settingResult;
-  try {
-    [itemsResult, inquiriesResult, settingResult] = await Promise.all([
-      supabaseClient.from("crochet_items")
-        .select("id,title,category,description,status,image_path,published,created_at")
-        .order("created_at", { ascending: false }),
-      supabaseClient.from("order_inquiries")
-        .select("id,name,contact,description,design_title,reference_path,status,created_at")
-        .order("created_at", { ascending: false }),
-      supabaseClient.from("site_settings")
-        .select("value")
-        .eq("key", "availability")
-        .maybeSingle()
-    ]);
-  } catch (error) {
-    showToast(`Could not connect to the maker studio: ${errorMessage(error)}`);
-    console.error("Could not load maker dashboard data.", error);
-    return;
-  }
-
-  if (itemsResult.error) {
-    showToast(`Could not load collection management: ${errorMessage(itemsResult.error)}`);
-  } else {
-    items = itemsResult.data || [];
-  }
-  if (inquiriesResult.error) {
-    showToast(`Could not load customer inquiries: ${errorMessage(inquiriesResult.error)}`);
-  } else {
-    inquiries = inquiriesResult.data || [];
-  }
-  if (settingResult.error) {
-    showToast(`Could not load order availability: ${errorMessage(settingResult.error)}`);
-  } else if (settingResult.data?.value === "available" || settingResult.data?.value === "full") {
-    availability = settingResult.data.value;
-  }
-
+  const data = await studioApi();
+  items = data.items || [];
+  inquiries = data.inquiries || [];
+  availability = data.availability;
   renderProducts();
   renderAvailability();
   renderAdmin();
@@ -465,46 +427,10 @@ document.querySelector("#requestForm").addEventListener("submit", async event =>
   }
 });
 
-document.querySelector("#loginForm").addEventListener("submit", async event => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const errorNode = document.querySelector("#loginError");
-  const submitButton = form.querySelector('[type="submit"]');
-  errorNode.textContent = "";
-  if (!supabaseClient) {
-    errorNode.textContent = "Supabase is not configured for this deployment.";
-    return;
-  }
-
-  const data = new FormData(form);
-  submitButton.disabled = true;
-  try {
-    const { error } = await supabaseClient.auth.signInWithPassword({
-      email: String(data.get("email")).trim(),
-      password: String(data.get("password"))
-    });
-    if (error) throw error;
-
-    const access = await checkAdminAccess();
-    if (access.error) throw access.error;
-    if (!access.authorized) {
-      await supabaseClient.auth.signOut();
-      errorNode.textContent = "This account is not authorized for the maker studio.";
-      return;
-    }
-    await showDashboard();
-  } catch (error) {
-    console.error("Maker sign-in failed.", error);
-    errorNode.textContent = `Could not sign in: ${errorMessage(error)}`;
-  } finally {
-    submitButton.disabled = false;
-  }
-});
-
 document.querySelector(".logout-button").addEventListener("click", async () => {
-  const { error } = await supabaseClient.auth.signOut();
-  if (error) {
-    showToast(`Could not sign out: ${errorMessage(error)}`);
+  const response = await fetch("/api/studio-session", { method: "DELETE" });
+  if (!response.ok) {
+    showToast("Could not close the private studio session. Close the browser tab and try again.");
     return;
   }
   adminModal.close();
@@ -515,9 +441,9 @@ document.querySelector(".logout-button").addEventListener("click", async () => {
 document.querySelector("#adminAvailability").addEventListener("change", async event => {
   const previousAvailability = availability;
   const newAvailability = event.target.value;
-  const { error } = await supabaseClient.from("site_settings")
-    .upsert({ key: "availability", value: newAvailability }, { onConflict: "key" });
-  if (error) {
+  try {
+    await studioApi("availability", { value: newAvailability });
+  } catch (error) {
     event.target.value = previousAvailability;
     showToast(`Could not update order availability: ${errorMessage(error)}`);
     return;
@@ -561,25 +487,22 @@ document.querySelector("#adminProducts").addEventListener("click", async event =
     clearErrors(itemModal);
     setModalOpen(itemModal, true);
   } else if (event.target.closest(".toggle-item")) {
-    const { error } = await supabaseClient.from("crochet_items")
-      .update({ published: !item.published })
-      .eq("id", item.id);
-    if (error) {
+    try {
+      await studioApi("save-item", { id: item.id, item: { ...item, published: !item.published } });
+    } catch (error) {
       showToast(`Could not update this piece: ${errorMessage(error)}`);
       return;
     }
+    const wasPublished = item.published;
     await loadAdminData();
-    showToast(item.published ? "Piece hidden from the collection." : "Piece published.");
+    showToast(wasPublished ? "Piece hidden from the collection." : "Piece published.");
   } else if (event.target.closest(".delete-item")) {
     if (!confirm(`Remove "${item.title}" from the collection?`)) return;
-    const { error } = await supabaseClient.from("crochet_items").delete().eq("id", item.id);
-    if (error) {
+    try {
+      await studioApi("delete-item", { id: item.id });
+    } catch (error) {
       showToast(`Could not remove this piece: ${errorMessage(error)}`);
       return;
-    }
-    if (isStoragePath(item.image_path)) {
-      const { error: imageError } = await supabaseClient.storage.from(IMAGE_BUCKET).remove([item.image_path]);
-      if (imageError) console.error("Piece removed, but its old image could not be deleted.", imageError);
     }
     await loadAdminData();
     showToast("Piece removed.");
@@ -630,11 +553,10 @@ document.querySelector("#itemForm").addEventListener("submit", async event => {
   try {
     let imagePath = String(data.get("image_path"));
     if (itemPhotoFile) {
-      const extension = itemPhotoFile.type === "image/png" ? "png" : itemPhotoFile.type === "image/webp" ? "webp" : "jpg";
-      uploadedPath = `gallery/${crypto.randomUUID()}.${extension}`;
-      const { error: uploadError } = await supabaseClient.storage
-        .from(IMAGE_BUCKET)
-        .upload(uploadedPath, itemPhotoFile, { contentType: itemPhotoFile.type, upsert: false });
+      const signed = await studioApi("upload-url", { contentType: itemPhotoFile.type });
+      uploadedPath = signed.path;
+      const { error: uploadError } = await supabaseClient.storage.from(IMAGE_BUCKET)
+        .uploadToSignedUrl(signed.path, signed.token, itemPhotoFile, { contentType: itemPhotoFile.type, upsert: false });
       if (uploadError) throw uploadError;
       imagePath = uploadedPath;
     } else if (imageInput) {
@@ -650,18 +572,17 @@ document.querySelector("#itemForm").addEventListener("submit", async event => {
       published: form.elements.published.checked
     };
 
-    const result = existing
-      ? await supabaseClient.from("crochet_items").update(record).eq("id", existing.id)
-      : await supabaseClient.from("crochet_items").insert(record);
-    if (result.error) throw result.error;
+    await studioApi("save-item", { ...(existing ? { id: existing.id } : {}), item: record });
 
     const previousImage = existing?.image_path;
-    if (isStoragePath(previousImage) && previousImage !== imagePath) {
-      const { error: removeError } = await supabaseClient.storage.from(IMAGE_BUCKET).remove([previousImage]);
-      if (removeError) console.error("Piece saved, but the previous photo could not be deleted.", removeError);
-    }
-
     itemPhotoFile = null;
+    if (isStoragePath(previousImage) && previousImage !== imagePath) {
+      try {
+        await studioApi("delete-item-image", { path: previousImage });
+      } catch (cleanupError) {
+        console.error("Piece saved, but its previous stored photo could not be deleted.", cleanupError);
+      }
+    }
     itemModal.close();
     await loadAdminData();
     showToast(existing ? "Piece updated." : "Piece added to your collection.");
@@ -669,8 +590,11 @@ document.querySelector("#itemForm").addEventListener("submit", async event => {
     console.error("Could not save the crochet piece.", error);
     errorNode.textContent = `Could not save this piece: ${errorMessage(error)}`;
     if (uploadedPath) {
-      const { error: cleanupError } = await supabaseClient.storage.from(IMAGE_BUCKET).remove([uploadedPath]);
-      if (cleanupError) console.error("Could not clean up the unused uploaded image.", cleanupError);
+      try {
+        await studioApi("delete-item-image", { path: uploadedPath });
+      } catch (cleanupError) {
+        console.error("Could not clean up the unused uploaded image.", cleanupError);
+      }
     }
   } finally {
     submitButton.disabled = false;
@@ -683,10 +607,9 @@ document.querySelector("#inquiryList").addEventListener("change", async event =>
   const inquiry = inquiries.find(entry => entry.id === card.dataset.id);
   if (!inquiry) return;
   const previousStatus = inquiry.status;
-  const { error } = await supabaseClient.from("order_inquiries")
-    .update({ status: event.target.value })
-    .eq("id", inquiry.id);
-  if (error) {
+  try {
+    await studioApi("inquiry-status", { id: inquiry.id, value: event.target.value });
+  } catch (error) {
     event.target.value = previousStatus;
     showToast(`Could not update inquiry status: ${errorMessage(error)}`);
     return;
@@ -731,3 +654,4 @@ try {
 renderAvailability();
 renderProducts();
 loadPublicData();
+if (window.YT_STUDIO_LINK_TOKEN) openAdmin();

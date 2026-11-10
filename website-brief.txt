@@ -1,0 +1,201 @@
+CUSTOM CROCHET WEBSITE - WEBSITE BRIEF
+
+1. PURPOSE
+
+Create a welcoming website where visitors can browse my friend's handmade crochet
+work, explore designs and product types, and request a custom piece. The website
+should help her show her work and receive order inquiries without accepting
+online payments for now.
+
+The maker can complete about three pieces at a time. This is an estimate, not a
+promise of a fixed turnaround or a public order limit. The site must not display
+the number of available slots. It should only show a simple status such as
+"Slots available" or "Currently fully booked." The maker controls that status.
+
+2. PEOPLE WHO USE THE WEBSITE
+
+Visitor / customer:
+- Browse crochet photos, designs, and types of pieces.
+- Open a piece to see its description and whether it can be requested or used
+  as inspiration for a custom order.
+- Send an order inquiry with their own description and an optional reference
+  picture.
+- Receive confirmation that the request was sent and that the maker will
+  follow up.
+
+Maker / administrator:
+- The site owner creates one private maker link and sends it directly to the
+  maker; no separate maker login or customer accounts are required in the first
+  version.
+- Open the private link to access the dashboard. Treat it like a password:
+  anyone with the link can manage the gallery, change availability, and view
+  customer inquiries. Do not share it publicly.
+- After opening the link, keep access in a secure browser session that expires
+  automatically. The site owner can revoke access by replacing the link secret.
+- Add, edit, publish, unpublish, and remove gallery items.
+- Upload photos and add titles, descriptions, categories, and availability
+  information for each item.
+- Change the overall order status between "Slots available" and
+  "Currently fully booked."
+- Review customer requests, including their descriptions and reference images.
+- Update a request's status and contact the customer to discuss details.
+
+3. WEBSITE PAGES AND FEATURES
+
+Home page:
+- Introduce the maker and the handmade crochet business.
+- Show a selection of recent or featured work.
+- Display the current order status using words only. Do not show a slot count.
+- Provide clear links to browse the gallery and submit a custom request.
+
+Gallery / designs:
+- Display crochet pieces in a photo-based grid that works on phones and
+  computers.
+- Allow visitors to browse by categories or types of pieces, if categories are
+  configured (for example: clothing, accessories, toys, and home decor).
+- Each item can have one or more photos, a title, a short description, and a
+  status such as "Available to request," "Made to order," or "Inspiration."
+- Do not imply that an example photo guarantees an exact match. Handmade items
+  may vary.
+
+Piece details:
+- Show larger photos, the item's description, and any relevant notes.
+- Offer a "Request this design" action that opens the request form with the
+  chosen design attached to the inquiry.
+
+Custom order request form:
+- Ask for the customer's name and a way to contact them (email or phone).
+- Ask what they would like made, including size, color, style, and other useful
+  details.
+- Allow an optional reference image upload.
+- Allow the customer to link the request to a gallery design, when applicable.
+- Explain that submitting the form is an inquiry, not a confirmed order, final
+  price, or payment.
+- If the maker has marked the site as fully booked, explain that new requests
+  are not currently being accepted; do not allow submission as a normal order
+  request.
+- Show a clear success message after a request is submitted.
+
+About / contact:
+- Share a short introduction to the maker and how custom crochet requests work.
+- Provide the maker's preferred contact or social links if she chooses to add
+  them.
+
+4. MAKER DASHBOARD AND ACCESS
+
+The dashboard is private and accessible to people who have the owner-issued
+maker link. The initial preview does not use a separate login or account
+database. The private link is a bearer credential: anyone who receives it can
+use the dashboard, so the owner sends it directly to the maker and replaces it
+if it is lost or shared.
+
+The dashboard should provide:
+
+- A simple way to add a gallery item with photos, title, description, category,
+  and request status.
+- Controls to edit, publish/unpublish, or remove gallery items.
+- An order-inquiry list showing submission date, customer contact details,
+  request description, reference image, linked design, and inquiry status.
+- Inquiry statuses such as "New," "In discussion," "Accepted," "Declined," and
+  "Completed." These are for organizing requests and do not send a payment.
+- A setting to show either "Slots available" or "Currently fully booked" on the
+  public website. Never show a numeric number of slots.
+- A way to view or download reference images and customer-provided details.
+- A secure server-side dashboard API. The Supabase service-role key must never
+  be sent to the browser or included in public website files.
+- A short-lived, secure, HTTP-only browser session after the private link is
+  opened. The link token should not be placed in a query string or sent as a
+  page referrer.
+
+5. CUSTOMER REQUEST FLOW
+
+1. The visitor opens the website and sees the maker's work and current order
+   status.
+2. The visitor browses the gallery and opens a design, or starts a custom
+   request directly.
+3. The visitor enters their contact details and describes the requested piece.
+4. The visitor may attach a reference picture. The site should explain that
+   uploaded pictures are used only to understand the request.
+5. The visitor reviews and submits the inquiry.
+6. The site confirms receipt and explains that the maker will contact them to
+   discuss feasibility, price, timing, and next steps.
+7. The maker reviews the inquiry in the dashboard and contacts the customer.
+8. The maker and customer agree on the design, price, and timing outside the
+   website. The maker updates the inquiry status as needed.
+
+Submitting an inquiry must not automatically mean the order is accepted.
+There is no checkout or online payment in the initial version.
+
+6. SITE OWNER SETUP AND DATA
+
+- The site owner controls the GitHub repository, Vercel project, Supabase
+  project, environment variables, and private maker link.
+- Supabase stores gallery entries, order availability, customer inquiries, and
+  uploaded images. Vercel hosts the public website and the private dashboard
+  API.
+- Customer inquiries do not require customer accounts. Keep inquiry contact
+  information and reference images private to the dashboard.
+- The maker link is temporary access for the private preview phase, not
+  identity verification. Rotate the secret to revoke the link and existing
+  sessions.
+- The private link is for the preview phase. Once the maker has provided a
+  preferred contact method, replace it with a one-time verification code sent
+  to her verified email address or phone/messaging account.
+- Verification codes are not part of the current private-link setup and must
+  not be represented as active until a delivery service is configured and
+  tested.
+
+7. DESIGN AND ACCESSIBILITY
+
+- Use a warm, creative visual style centered on purple gradients and white
+  surfaces, with crochet photos as the main visual focus.
+- Provide a dark theme in which light surfaces/text are adjusted to dark colors
+  while remaining easy to read. Let visitors switch themes; remember their
+  preference when practical.
+- Make the layout responsive for mobile phones, tablets, and desktop screens.
+- Use readable text, visible focus states, descriptive image text, and
+  accessible form labels and error messages.
+- Keep the interface friendly and simple rather than overly technical.
+
+8. IMPORTANT BEHAVIOR AND DATA HANDLING
+
+- The public availability indicator is controlled by the maker and shows a
+  status only, never a number of slots.
+- Do not claim that a request is accepted until the maker confirms it.
+- Validate required form fields and reasonable image file types and sizes.
+- Keep the dashboard and customer inquiries private from public visitors.
+- Handle customer contact details and uploaded reference images carefully;
+  provide a short privacy notice explaining why they are collected and how the
+  maker uses them.
+- Show useful error messages if an upload or inquiry submission fails, and do
+  not claim that a request was received unless it was successfully saved.
+
+9. FIRST VERSION (MVP)
+
+Include:
+- Home page and introduction.
+- Public crochet gallery with item details.
+- Custom inquiry form with optional reference image upload.
+- Private maker link and dashboard (preview access only; no separate login).
+- Gallery management.
+- Inquiry review and status updates.
+- Maker-controlled availability message with no public slot count.
+- Purple/white styling and a usable dark theme.
+
+Do not include in the first version:
+- Online payments or checkout.
+- Automatic order acceptance.
+- A public numeric slot count.
+- Automated promises about exact completion dates.
+- Customer registration or a separate maker login database.
+- Automated email/SMS verification codes.
+
+10. POSSIBLE FUTURE ADDITIONS
+
+- Online payment after the maker and customer agree on the order.
+- Email notifications for new inquiries and status changes.
+- Search and additional gallery filters.
+- Customer accounts or a private page to follow an inquiry.
+- More detailed pricing, delivery, and order policies.
+- Replace the shared maker link with a one-time code sent to the maker's
+  verified email, phone, or chosen messaging channel.

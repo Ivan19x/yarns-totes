@@ -20,7 +20,6 @@ const supabaseClient = config?.url && config?.anonKey && window.supabase?.create
 let items = [...STARTER_ITEMS];
 let inquiries = [];
 let availability = null;
-let activeFilter = "All";
 let referenceFile = null;
 let itemPhotoFile = null;
 let toastTimer;
@@ -117,13 +116,13 @@ function renderAvailability() {
 }
 
 function visibleItems() {
-  return items.filter(item => item.published && (activeFilter === "All" || item.category === activeFilter));
+  return items.filter(item => item.published);
 }
 
 function renderProducts() {
   const products = visibleItems();
   if (!products.length) {
-    productGrid.innerHTML = '<p class="empty-state">No pieces in this category just yet. Try another filter.</p>';
+    productGrid.innerHTML = '<p class="empty-state">No pieces in the collection just yet.</p>';
     return;
   }
 
@@ -306,13 +305,6 @@ function clearErrors(dialog) {
 }
 
 document.querySelector("#year").textContent = new Date().getFullYear();
-document.querySelectorAll(".filter-chip").forEach(button => {
-  button.addEventListener("click", () => {
-    activeFilter = button.dataset.filter;
-    document.querySelectorAll(".filter-chip").forEach(chip => chip.classList.toggle("active", chip === button));
-    renderProducts();
-  });
-});
 
 productGrid.addEventListener("click", event => {
   const card = event.target.closest(".product-card");

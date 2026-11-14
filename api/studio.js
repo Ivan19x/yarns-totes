@@ -130,6 +130,17 @@ function encodedStoragePath(path) {
   return path.split("/").map(segment => encodeURIComponent(segment)).join("/");
 }
 
+function signedStorageUrl(signedURL) {
+  if (typeof signedURL !== "string" || !signedURL) {
+    throw new Error("Supabase did not return a signed storage URL.");
+  }
+  const storagePath = signedURL.replace(/^\/+/, "");
+  const path = storagePath.startsWith("storage/v1/")
+    ? `/${storagePath}`
+    : `/storage/v1/${storagePath}`;
+  return new URL(path, supabaseCredentials().url).toString();
+}
+
 function validateItem(body) {
   const item = body.item;
   if (!item || typeof item !== "object") throw badRequest("A crochet piece is required.");
@@ -174,7 +185,7 @@ async function getDashboard() {
       `/storage/v1/object/sign/gallery-images/${encodedStoragePath(item.image_path)}`,
       { method: "POST", body: JSON.stringify({ expiresIn: 3600 }) }
     );
-    return { ...item, image_url: new URL(signed.signedURL, supabaseCredentials().url).toString() };
+    return { ...item, image_url: signedStorageUrl(signed.signedURL) };
   }));
 
   const orderInquiries = await Promise.all(inquiries.map(async inquiry => {
@@ -185,7 +196,7 @@ async function getDashboard() {
     );
     return {
       ...inquiry,
-      reference_url: new URL(signed.signedURL, supabaseCredentials().url).toString()
+      reference_url: signedStorageUrl(signed.signedURL)
     };
   }));
 

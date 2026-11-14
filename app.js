@@ -213,7 +213,7 @@ function openRequest(design = "") {
   referenceFile = null;
   document.querySelector("#uploadText").textContent = "Choose an image (PNG, JPG, WEBP · max 2 MB)";
   document.querySelector("#formError").textContent = "";
-  document.querySelector("#requestSuccessMessage").textContent = "Thanks for sharing your idea. This is an inquiry, not a confirmed order. The maker will follow up to discuss what’s possible.";
+  document.querySelector("#requestSuccessMessage").textContent = "Thanks for dreaming it up with me! I’ve received your inquiry and will message you on WhatsApp soon to talk through the details. This is not a confirmed order yet.";
   form.hidden = false;
   document.querySelector("#requestSuccess").hidden = true;
   updateRequestSubmitButton();
@@ -440,8 +440,8 @@ document.querySelector("#requestForm").addEventListener("submit", async event =>
     referenceFile = null;
     document.querySelector("#uploadText").textContent = "Choose an image (PNG, JPG, WEBP · max 2 MB)";
     document.querySelector("#requestSuccessMessage").textContent = savedWithReference
-      ? "Thanks for sharing your idea. This is an inquiry, not a confirmed order. The maker will follow up to discuss what’s possible."
-      : "Your inquiry was saved, but the reference image could not be attached. Please send the image to the maker when they follow up.";
+      ? "Thanks for dreaming it up with me! I’ve received your inquiry and will message you on WhatsApp soon to talk through the details. This is not a confirmed order yet."
+      : "Thanks for sharing your idea! Your inquiry was received, but the reference image didn’t upload. I’ll message you on WhatsApp soon; please share the picture then. This is not a confirmed order yet.";
     document.querySelector("#requestSuccess").hidden = false;
     startRequestCooldown();
   } catch (error) {

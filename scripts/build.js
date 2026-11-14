@@ -33,7 +33,7 @@ if (supabaseAnonKey.trim() !== supabaseAnonKey) {
 fs.rmSync(outputDirectory, { recursive: true, force: true });
 fs.mkdirSync(outputDirectory, { recursive: true });
 
-for (const file of ["index.html", "styles.css", "app.js"]) {
+for (const file of ["index.html", "styles.css", "app.js", "favicon.ico"]) {
   fs.copyFileSync(path.join(projectRoot, file), path.join(outputDirectory, file));
 }
 

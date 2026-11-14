@@ -83,7 +83,7 @@ async function studioApi(action, data = {}) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, ...data })
     }
-    : { method: "GET" };
+    : { method: "GET", cache: "no-store" };
   const response = await fetch("/api/studio", options);
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error || `Studio request failed (${response.status}).`);
@@ -466,6 +466,21 @@ document.querySelector(".logout-button").addEventListener("click", async () => {
   adminModal.close();
   document.querySelector("#adminLogin").hidden = false;
   document.querySelector("#adminDashboard").hidden = true;
+});
+
+document.querySelector(".refresh-inquiries-button").addEventListener("click", async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  button.textContent = "Refreshing…";
+  try {
+    await loadAdminData();
+    showToast("Dashboard refreshed.");
+  } catch (error) {
+    showToast(`Could not refresh the dashboard: ${errorMessage(error)}`);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = 'Refresh inquiries <span aria-hidden="true">↻</span>';
+  }
 });
 
 document.querySelector("#adminAvailability").addEventListener("change", async event => {

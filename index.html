@@ -122,7 +122,7 @@
           <input type="hidden" name="design">
           <div class="form-grid">
             <label>Your name <span>*</span><input name="name" autocomplete="name" required maxlength="80" placeholder="What should I call you?"></label>
-            <label>Email or phone <span>*</span><input name="contact" required maxlength="140" placeholder="How can I reach you?"></label>
+            <label>Phone number <span>*</span><input name="contact" type="tel" autocomplete="tel" inputmode="tel" pattern="[+]?[0-9][0-9 ().-]{5,19}" title="Enter a phone number using digits; spaces, +, parentheses, and hyphens are okay." required maxlength="140" placeholder="How can I reach you?"></label>
           </div>
           <label>What would you love me to make? <span>*</span><textarea name="description" required maxlength="2000" rows="4" placeholder="Tell me about colors, size, style, or anything else..."></textarea></label>
           <label class="upload-label">A reference picture <span class="optional">(optional)</span><input id="referenceImage" name="reference" type="file" accept="image/png,image/jpeg,image/webp"><span class="upload-box"><span aria-hidden="true">＋</span><span id="uploadText">Choose an image (PNG, JPG, WEBP · max 2 MB)</span></span></label>
@@ -144,7 +144,7 @@
           <div class="dashboard-notice"><strong>Private maker studio.</strong> Gallery changes, availability, and customer inquiries are shared through the connected Supabase project.</div>
           <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Order status</h3><p>Only a message is shown publicly—never a slot count.</p></div></div><label class="status-select-label">Public availability<select id="adminAvailability"><option value="available">Slots available</option><option value="full">Currently fully booked</option></select></label></section>
           <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Your collection</h3><p>Manage the pieces visitors can browse.</p></div><button class="button button-primary add-item-button" type="button">＋ Add a piece</button></div><div class="admin-products" id="adminProducts"></div></section>
-          <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Inquiries <span class="inquiry-count" id="inquiryCount">0</span></h3><p>Follow up with each person to confirm the details.</p></div></div><div class="inquiry-list" id="inquiryList"></div></section>
+          <section class="dashboard-section"><div class="dashboard-section-head"><div><h3>Inquiries <span class="inquiry-count" id="inquiryCount">0</span></h3><p>Follow up with each person to confirm the details.</p></div><button class="button button-outline refresh-inquiries-button" type="button">Refresh inquiries <span aria-hidden="true">↻</span></button></div><div class="inquiry-list" id="inquiryList"></div></section>
         </div>
       </div>
     </dialog>

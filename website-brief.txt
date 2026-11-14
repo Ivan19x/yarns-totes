@@ -64,7 +64,7 @@ Piece details:
   chosen design attached to the inquiry.
 
 Custom order request form:
-- Ask for the customer's name and a way to contact them (email or phone).
+- Ask for the customer's name and phone number.
 - Ask what they would like made, including size, color, style, and other useful
   details.
 - Allow an optional reference image upload.

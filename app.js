@@ -5,6 +5,7 @@ const IMAGE_BUCKET = "gallery-images";
 const REFERENCE_BUCKET = "order-references";
 const INQUIRY_STATUSES = ["New", "In discussion", "Accepted", "Declined", "Completed"];
 const CATEGORIES = ["Accessories", "Wearables", "Home", "Playful"];
+const REQUEST_COOLDOWN_MS = 30_000;
 const STARTER_ITEMS = [
   { id: "star-patch-beanie", title: "Star-Patch Beanie", category: "Wearables", description: "A deep green crochet beanie finished with a bold red star patch. Ask about sizing and color options for a custom make.", status: "Made to order", image_path: "site:images/Green%20and%20Red%20Star-Patch%20Beanie.png", published: true },
   { id: "bear-ear-beanie", title: "Bear-Ear Beanie", category: "Wearables", description: "A playful lavender-and-mint beanie with soft bear ears and a little crochet bow detail.", status: "Available to request", image_path: "site:images/Lavender%20and%20Mint%20Bear-Ear%20Beanie.png", published: true },
@@ -23,6 +24,8 @@ let availability = null;
 let referenceFile = null;
 let itemPhotoFile = null;
 let toastTimer;
+let requestCooldownUntil = 0;
+let requestCooldownInterval;
 
 const productGrid = document.querySelector("#productGrid");
 const requestModal = document.querySelector("#requestModal");
@@ -49,6 +52,28 @@ function showToast(message) {
 
 function errorMessage(error) {
   return error?.message || "An unexpected error occurred. Please try again.";
+}
+
+function updateRequestSubmitButton() {
+  const submitButton = document.querySelector("#requestForm [type='submit']");
+  const secondsRemaining = Math.ceil((requestCooldownUntil - Date.now()) / 1000);
+  if (secondsRemaining > 0) {
+    submitButton.disabled = true;
+    submitButton.textContent = `Send my inquiry (${secondsRemaining}s)`;
+    return;
+  }
+
+  clearInterval(requestCooldownInterval);
+  requestCooldownInterval = null;
+  submitButton.disabled = false;
+  submitButton.innerHTML = 'Send my inquiry <span aria-hidden="true">↗</span>';
+}
+
+function startRequestCooldown() {
+  requestCooldownUntil = Date.now() + REQUEST_COOLDOWN_MS;
+  updateRequestSubmitButton();
+  clearInterval(requestCooldownInterval);
+  requestCooldownInterval = setInterval(updateRequestSubmitButton, 250);
 }
 
 async function studioApi(action, data = {}) {
@@ -191,6 +216,7 @@ function openRequest(design = "") {
   document.querySelector("#requestSuccessMessage").textContent = "Thanks for sharing your idea. This is an inquiry, not a confirmed order. The maker will follow up to discuss what’s possible.";
   form.hidden = false;
   document.querySelector("#requestSuccess").hidden = true;
+  updateRequestSubmitButton();
   setModalOpen(requestModal, true);
   form.querySelector("[name=name]").focus();
 }
@@ -357,6 +383,11 @@ document.querySelector("#requestForm").addEventListener("submit", async event =>
   const submitButton = form.querySelector('[type="submit"]');
   errorNode.textContent = "";
 
+  if (Date.now() < requestCooldownUntil) {
+    updateRequestSubmitButton();
+    return;
+  }
+
   if (!supabaseClient) {
     errorNode.textContent = "Order requests are not connected yet. Please try again later.";
     return;
@@ -405,17 +436,24 @@ document.querySelector("#requestForm").addEventListener("submit", async event =>
       }
     }
 
-    form.hidden = true;
+    form.reset();
+    referenceFile = null;
+    document.querySelector("#uploadText").textContent = "Choose an image (PNG, JPG, WEBP · max 2 MB)";
     document.querySelector("#requestSuccessMessage").textContent = savedWithReference
       ? "Thanks for sharing your idea. This is an inquiry, not a confirmed order. The maker will follow up to discuss what’s possible."
       : "Your inquiry was saved, but the reference image could not be attached. Please send the image to the maker when they follow up.";
     document.querySelector("#requestSuccess").hidden = false;
+    startRequestCooldown();
   } catch (error) {
     console.error("Could not save the customer inquiry.", error);
     errorNode.textContent = `We couldn’t send your inquiry: ${errorMessage(error)}`;
   } finally {
-    submitButton.disabled = false;
-    submitButton.innerHTML = 'Send my inquiry <span aria-hidden="true">↗</span>';
+    if (Date.now() < requestCooldownUntil) {
+      updateRequestSubmitButton();
+    } else {
+      submitButton.disabled = false;
+      submitButton.innerHTML = 'Send my inquiry <span aria-hidden="true">↗</span>';
+    }
   }
 });
 
